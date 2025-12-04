@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Art Portfolio - Tombs-Tones</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* GitHub Dark Mode background */
+        }
+        .gallery-image {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            cursor: pointer;
+            aspect-ratio: 4 / 3; /* Ensures uniform card height */
+        }
+        .gallery-image:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 15px -3px rgba(0, 255, 255, 0.2), 0 4px 6px -2px rgba(0, 255, 255, 0.1);
+        }
+        .img-cover {
+             width: 100%;
+             height: 100%;
+             object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8 border-b border-gray-700 pb-4">
+            <h1 class="text-4xl font-extrabold text-cyan-400 tracking-wider">TomB's Personal Portfolio</h1>
+            <p class="text-gray-400 mt-2 text-lg">New artwork is added automatically when committed to the repository.</p>
+        </header>
+
+        <div id="loading-spinner" class="text-center py-12 text-white">
+            <svg class="animate-spin h-8 w-8 text-cyan-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-3">Loading artwork from the 'art' folder...</p>
+        </div>
+        
+        <div id="image-gallery" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Images will be inserted here by JavaScript -->
+        </div>
+
+        <div id="error-message" class="hidden bg-red-800 p-4 rounded-xl mt-12 text-white">
+            <p class="font-bold text-xl mb-2">Deployment Error</p>
+            <p id="error-text" class="mb-2"></p>
+            <p class="text-sm opacity-80">This usually means the folder path is incorrect or the GitHub API limit was hit. Make sure you have moved all files to the **`art`** folder.</p>
+        </div>
+    </div>
+
+    <script>
+        // === CRITICAL: Configuration Details from your repository ===
+        const username = 'Tombs-Tones'; 
+        const repoName = 'Portfolio-Personal-Art-TomB';
+        // Folder path is now set to 'art' because we are moving the images there.
+        const folderPath = 'art';    
+        // ==============================================
+
+        const branch = 'main'; 
+        const apiUrl = `https://api.github.com/repos/${username}/${repoName}/contents/${folderPath}?ref=${branch}`;
+        const gallery = document.getElementById('image-gallery');
+        const spinner = document.getElementById('loading-spinner');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        // List of common image file extensions to check against
+        const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+
+        /**
+         * Converts a file path to its file extension.
+         */
+        function getExtension(filename) {
+            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
+        }
+
+        /**
+         * Fetches files from the GitHub repository folder and displays them.
+         */
+        async function fetchAndRenderImages() {
+            try {
+                const response = await fetch(apiUrl);
+
+                if (!response.ok) {
+                    const errorDetails = await response.json().catch(() => ({ message: 'Could not parse error response.' }));
+                    if (response.status === 404) {
+                        throw new Error(`Folder Not Found. Please verify that a folder named "${folderPath}" exists in your repository's main branch and contains images.`);
+                    } else {
+                        throw new Error(`GitHub API returned status ${response.status}: ${errorDetails.message || 'Unknown Error'}`);
+                    }
+                }
+
+                const files = await response.json();
+                gallery.innerHTML = '';
+
+                // Filter for image files and sort them alphabetically
+                const imageFiles = files
+                    .filter(file => IMAGE_EXTENSIONS.includes(`.${getExtension(file.name)}`))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                
+                if (imageFiles.length === 0) {
+                    gallery.innerHTML = `<p class="col-span-full text-center text-gray-400 p-8 text-xl border-t border-gray-700 mt-6">No supported artwork found in the **art** folder yet. Upload some files!</p>`;
+                    return;
+                }
+
+                // Create the gallery elements
+                imageFiles.forEach(file => {
+                    const rawImageUrl = file.download_url;
+                    
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'rounded-xl overflow-hidden shadow-2xl bg-gray-900 border border-gray-700 gallery-image';
+                    
+                    const img = document.createElement('img');
+                    img.src = rawImageUrl;
+                    img.alt = file.name.replace(/\.[^/.]+$/, ""); 
+                    img.loading = 'lazy'; 
+                    img.className = 'img-cover';
+                    
+                    // Optional: You could add a caption overlay here if desired.
+                    
+                    imgContainer.addEventListener('click', () => {
+                        window.open(rawImageUrl, '_blank');
+                    });
+                    
+                    imgContainer.appendChild(img);
+                    gallery.appendChild(imgContainer);
+                });
+
+            } catch (error) {
+                console.error("Failed to fetch GitHub files:", error);
+                errorMessage.classList.remove('hidden');
+                errorText.textContent = error.message;
+            } finally {
+                spinner.classList.add('hidden'); // Hide loading spinner
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchAndRenderImages);
+    </script>
+
+</body>
+</html>
+
+
