@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thomas Berg</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Manrope Font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base styles for the body */
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #121212; 
+            background-image: url('assets/asphalt-bg.jpeg'); 
+            background-repeat: repeat;
+            color: #fff;
+            min-height: 100vh;
+            
+            /* Background size set to auto to prevent blurriness and allow repeating */
+            background-size: auto; 
+            
+            /* CSS for Parallax setup - Position is controlled by JS on scroll */
+            background-attachment: scroll; 
+            background-position: center top; 
+        }
+
+        /* Styling for the hidden About paragraph */
+        .about-text-container {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out;
+            color: #d1d5db; 
+        }
+
+        /* Class added by JS when toggled */
+        .about-text-container.open {
+            max-height: 500px;
+            opacity: 1;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+            
+            /* Semi-transparent background for readability */
+            background-color: rgba(0, 0, 0, 0.7); 
+            padding: 1rem 1.5rem; 
+            border-radius: 0.5rem; 
+        }
+
+        /* Artwork Container Styles (Frame) */
+        .artwork-container {
+            display: flex; 
+            overflow: hidden;
+            /* CRITICAL: Reverted background to semi-transparent dark color */
+            background-color: rgba(0, 0, 0, 0.4); 
+            border-radius: 0.125rem;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            cursor: pointer;
+            border: 1px solid #374151; 
+            align-items: center; 
+            justify-content: center;
+        }
+
+        .img-fill {
+            width: 100%;
+            height: 100%;
+            /* CRITICAL FIX: Ensure the entire image is visible, preventing cropping */
+            object-fit: contain; 
+            /* Optional: Setting the image background to black to hide potential subtle edges */
+            background-color: #000000; 
+        }
+
+        .justified-row {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow: hidden;
+            /* CRITICAL: Ensure the row fills 100% of the horizontal space */
+            width: 100%; 
+        }
+        
+        /* Dropdown Menu Style */
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            z-index: 50; 
+            min-width: 200px;
+            background-color: rgba(30, 30, 30, 0.95);
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            padding: 0.5rem 0;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: visibility 0.2s, opacity 0.2s, transform 0.2s;
+        }
+
+        .dropdown-menu.visible {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            color: #d1d5db;
+            transition: background-color 0.15s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #374151;
+        }
+        
+        /* Style for the sentinel element */
+        #gallery-sentinel {
+            height: 1px; 
+            width: 100%; 
+            margin-top: 40px; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <!-- Minimal Header and Navigation -->
+        <header class="flex justify-between items-center mb-8 pb-3 border-b border-gray-700 relative">
+            
+            <!-- Title (Top Left) -->
+            <h1 class="text-3xl font-light text-white tracking-widest uppercase">Thomas Berg</h1>
+            
+            <!-- Hamburger Menu Container (Top Right) -->
+            <div id="menu-toggle-area" class="relative">
+                
+                <!-- Hamburger Icon Button -->
+                <button id="hamburger-btn" class="p-2 text-white hover:text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-lg transition-colors duration-200">
+                    <!-- Hamburger SVG Icon -->
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+                
+                <!-- Dropdown Menu -->
+                <div id="dropdown-menu" class="dropdown-menu">
+                    <div id="about-option" class="dropdown-item">About this portfolio</div>
+                    <a href="mailto:tb295@cornell.edu?subject=Commission%20a%20piece%20from%20Thomas%20Berg" 
+                       id="commission-option" class="dropdown-item" target="_blank">
+                        Commission a piece
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Toggled About Paragraph Content -->
+        <div id="about-content" class="about-text-container text-white max-w-3xl font-light leading-relaxed">
+            Every piece in this collection is a moment of exploration • 5 to 30 minutes of imperfect creation. I draw to stay grounded, to study the human form, and to celebrate the beauty of making a mess.
+            Drawn/painted works are entirely by hand: most on paper, some created digitally through Adobe Fresco, and others brought to life as public murals. Alongside these drawings, you’ll also find photography by me • usually arrangements that inspire my sketches.
+            This portfolio is my visual journal: a space where I can be a little chaotic and explore.
+        </div>
+        
+        <!-- Image Gallery Section -->
+        <div id="loading-spinner" class="text-center py-12 text-amber-100">
+            <svg class="animate-spin h-8 w-8 text-amber-300 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-3">Loading and calculating optimal layout for artwork...</p>
+        </div>
+        
+        <div id="image-gallery" class="flex flex-col">
+            <!-- Justified rows will be inserted here by JavaScript -->
+        </div>
+        
+        <!-- Sentinel element for Intersection Observer -->
+        <div id="gallery-sentinel"></div>
+
+        <div id="error-message" class="hidden bg-red-800 p-4 rounded-xl mt-12 text-white">
+            <p class="font-bold text-xl mb-2">Deployment Error</p>
+            <p id="error-text" class="mb-2"></p>
+            <p class="text-sm opacity-80">Check the JavaScript console for details. If the error mentions 'Rate Limit Hit', try again in an hour.</p>
+        </div>
+        
+        <!-- Bottom loading indicator for subsequent batches -->
+        <div id="bottom-loader" class="text-center py-8 text-amber-100 hidden">
+            <svg class="animate-spin h-6 w-6 text-amber-300 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Standard Footer -->
+    <footer class="text-center py-6 mt-16 border-t border-gray-800 text-gray-500 text-sm">
+        <p>© <span id="current-year"></span> Thomas Berg. All Rights Reserved.</p>
+        <p>Published: December 2025</p>
+    </footer>
+
+    <script>
+        // === CRITICAL: Configuration Details from your repository ===
+        const username = 'Tombs-Tones'; 
+        const repoName = 'Portfolio-Personal-Art-TomB';
+        const folderPath = 'art';    
+        // ==============================================
+
+        const branch = 'main'; 
+        const API_URL = `https://api.github.com/repos/${username}/${repoName}/contents/${folderPath}?ref=${branch}`;
+        
+        // UI Elements
+        const gallery = document.getElementById('image-gallery');
+        const spinner = document.getElementById('loading-spinner');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const aboutContent = document.getElementById('about-content');
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const aboutOption = document.getElementById('about-option');
+        const currentYearSpan = document.getElementById('current-year');
+        const sentinel = document.getElementById('gallery-sentinel');
+        const bottomLoader = document.getElementById('bottom-loader');
+        
+        // Progressive Loading State
+        const BATCH_SIZE = 8;
+        let allImageFiles = [];
+        let currentRenderedIndex = 0;
+        let isLoadingBatch = false; 
+
+        // Set the current year in the footer
+        currentYearSpan.textContent = new Date().getFullYear();
+
+        // Gap configurations
+        const ROW_GAP = 40; 
+        const ITEM_GAP = 8; 
+        
+        // Parallax Factor
+        const PARALLAX_FACTOR = 2.0;
+
+        // Supported Image Extensions
+        const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.heic']; 
+
+        // --- Parallax Logic ---
+        function applyParallax() {
+            const scrollPosition = window.scrollY;
+            const backgroundY = (scrollPosition * PARALLAX_FACTOR); 
+            document.body.style.backgroundPositionY = `${backgroundY}px`;
+        }
+        
+        window.addEventListener('scroll', applyParallax);
+
+
+        // --- UI Interaction Logic ---
+
+        hamburgerBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            dropdownMenu.classList.toggle('visible');
+        });
+
+        aboutOption.addEventListener('click', () => {
+            aboutContent.classList.toggle('open');
+            dropdownMenu.classList.remove('visible');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!dropdownMenu.contains(event.target) && !hamburgerBtn.contains(event.target)) {
+                dropdownMenu.classList.remove('visible');
+            }
+        });
+
+
+        // --- GitHub API and Gallery Logic ---
+
+        function getExtension(filename) {
+            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
+        }
+
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status !== 429) { 
+                        return response;
+                    }
+                    console.warn(`Attempt ${i + 1}: Rate limit hit (429). Retrying in ${2 ** i}s...`);
+                    await new Promise(resolve => setTimeout(resolve, (2 ** i) * 1000));
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    console.error(`Attempt ${i + 1}: Fetch error. Retrying in ${2 ** i}s...`, error);
+                    await new Promise(resolve => setTimeout(resolve, (2 ** i) * 1000));
+                }
+            }
+            throw new Error("Failed to fetch after multiple retries.");
+        }
+
+        function getImageAspectRatio(file) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => {
+                    resolve(img.naturalWidth / img.naturalHeight);
+                };
+                img.onerror = () => {
+                    console.error(`Failed to load image for ratio calculation: ${file.name}.`);
+                    resolve(1); // Default ratio for files that fail to load
+                };
+                img.src = file.download_url; 
+            });
+        }
+
+        async function renderJustifiedBatch(filesToRender, startIndex) {
+            if (filesToRender.length === 0) return;
+
+            const containerWidth = gallery.clientWidth;
+            const TARGET_ROW_HEIGHT = containerWidth > 768 ? 350 : 260; 
+            
+            // Calculate ratios only for the batch being rendered
+            const aspectRatios = await Promise.all(
+                filesToRender.map(file => getImageAspectRatio(file))
+            );
+
+            let currentTotalRatio = 0;
+            let rowStart = 0;
+            const batchLength = filesToRender.length;
+
+            // --- Implementing Rules 1, 2, and 3 ---
+            const isMobile = containerWidth <= 768;
+            
+            // Rule 1: Min Height
+            const MIN_HEIGHT = isMobile ? 240 : 300; 
+            // Setting a sensible maximum so rows aren't excessively large
+            const MAX_HEIGHT = isMobile ? 400 : 500; 
+
+            // Rule 2 & 3: Max Images per Row
+            let MAX_ITEMS_PER_ROW = Infinity; 
+            if (isMobile) {
+                // Determine orientation based on viewport size ratio
+                const isLandscapeMobile = window.innerWidth > window.innerHeight; 
+                MAX_ITEMS_PER_ROW = isLandscapeMobile ? 3 : 2;
+            }
+            // ----------------------------------------
+
+            for (let i = 0; i < batchLength; i++) {
+                currentTotalRatio += aspectRatios[i];
+
+                const isEndOfBatch = i === batchLength - 1;
+                const currentItemCount = i - rowStart + 1;
+                
+                const availableWidthForImages = containerWidth - (currentItemCount - 1) * ITEM_GAP;
+                let estimatedFinalHeight = 0;
+                
+                if (currentTotalRatio > 0) {
+                    estimatedFinalHeight = availableWidthForImages / currentTotalRatio;
+                }
+
+                // --- ROW BREAK LOGIC incorporating ALL Rules ---
+                
+                // 1. Landscape Discretionary Break (Mobile Only): If the only image is wide (ratio > 1.5), break early.
+                const isLandscapeImage = aspectRatios[i] > 1.5;
+                const discretionaryBreak = isMobile && currentItemCount === 1 && isLandscapeImage; 
+
+                // 2. Hard Mobile Limit Break (Rule 2)
+                const hardLimitBreak = isMobile && currentItemCount >= MAX_ITEMS_PER_ROW;
+                
+                // 3. Optimal Fill/Squat Prevention Break (General Logic)
+                const idealBreak = (estimatedFinalHeight < TARGET_ROW_HEIGHT * 1.2 && currentItemCount >= 2); 
+                                       
+                // Condition 4: Final Item in Batch
+                
+                const rowShouldBreak = isEndOfBatch || 
+                                       discretionaryBreak || 
+                                       hardLimitBreak ||
+                                       idealBreak;
+
+                // ----------------------------------------
+
+                if (rowShouldBreak) {
+                    const rowEnd = i + 1;
+                    const rowItems = filesToRender.slice(rowStart, rowEnd);
+                    const rowRatios = aspectRatios.slice(rowStart, rowEnd);
+                    
+                    let totalRatio = rowRatios.reduce((sum, ratio) => sum + ratio, 0);
+
+                    // Rule 4: Recalculate the required height to make the row fill the *entire* container width
+                    const finalAvailableWidth = containerWidth - (rowItems.length - 1) * ITEM_GAP;
+                    let finalHeight = finalAvailableWidth / totalRatio;
+                    
+                    // Rule 1: Clamping (must respect Min/Max height limits)
+                    if (finalHeight < MIN_HEIGHT) { 
+                        finalHeight = MIN_HEIGHT; 
+                    } else if (finalHeight > MAX_HEIGHT) {
+                         finalHeight = MAX_HEIGHT;
+                    }
+
+                    const rowElement = document.createElement('div');
+                    rowElement.className = 'justified-row';
+                    rowElement.style.height = `${finalHeight}px`;
+                    rowElement.style.marginBottom = `${ROW_GAP}px`; 
+
+
+                    rowItems.forEach((file, index) => {
+                        const aspectRatio = rowRatios[index];
+                        // Recalculate width based on the clamped finalHeight
+                        const calculatedWidth = aspectRatio * finalHeight;
+
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'artwork-container flex flex-col justify-center items-center p-2 text-center'; 
+                        
+                        // Set width dynamically using JS based on precise calculation
+                        imgContainer.style.width = `${calculatedWidth}px`; 
+                        
+                        if (index < rowItems.length - 1) {
+                            // Only apply margin to items *before* the last one in the row
+                            imgContainer.style.marginRight = `${ITEM_GAP}px`;
+                        }
+                        
+                        const img = document.createElement('img');
+                        img.src = file.download_url;
+                        img.alt = file.name.replace(/\.[^/.]+$/, ""); 
+                        img.loading = 'lazy'; 
+                        img.className = 'img-fill'; 
+                        
+                        // Click behavior is reverted to opening the raw image link
+                        imgContainer.addEventListener('click', () => {
+                            window.open(file.download_url, '_blank');
+                        });
+                        
+                        img.onerror = () => {
+                             console.error(`Image display failed: ${file.name}.`);
+                             imgContainer.innerHTML = '';
+                             imgContainer.style.backgroundColor = 'rgba(153, 27, 27, 0.9)'; 
+                             imgContainer.style.border = '1px solid #dc2626'; 
+                             imgContainer.style.cursor = 'default';
+                             imgContainer.innerHTML = `
+                                 <div class="p-2">
+                                    <svg class="w-6 h-6 mx-auto text-red-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.332 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                    <p class="text-xs font-semibold text-red-100 uppercase">Load Error</p>
+                                    <p class="text-sm text-white font-mono mt-1">${file.name}</p>
+                                    <p class="text-xs text-red-200 mt-1">Unsupported format (Convert to JPG/WebP)</p>
+                                 </div>
+                             `;
+                        };
+                        
+                        imgContainer.appendChild(img);
+                        rowElement.appendChild(imgContainer);
+                    });
+
+                    gallery.appendChild(rowElement);
+                    rowStart = i + 1; 
+                    currentTotalRatio = 0; 
+                }
+            }
+            
+            // Update the index marker
+            currentRenderedIndex = startIndex + batchLength;
+        }
+
+        async function loadNextBatch() {
+            if (isLoadingBatch || currentRenderedIndex >= allImageFiles.length) {
+                // Stop if already loading or if all images are rendered
+                return;
+            }
+            
+            // Remove the previous sentinel and set loading state
+            observer.unobserve(sentinel);
+            bottomLoader.classList.remove('hidden');
+            isLoadingBatch = true;
+
+            const nextBatch = allImageFiles.slice(currentRenderedIndex, currentRenderedIndex + BATCH_SIZE);
+            
+            try {
+                // Use a short delay to allow for the bottom loader to show up
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await renderJustifiedBatch(nextBatch, currentRenderedIndex);
+            } catch (error) {
+                console.error("Error rendering batch:", error);
+            } finally {
+                bottomLoader.classList.add('hidden');
+                isLoadingBatch = false;
+                
+                // If there are more files, re-observe the sentinel
+                if (currentRenderedIndex < allImageFiles.length) {
+                    observer.observe(sentinel);
+                }
+            }
+        }
+
+        async function fetchAndInitializeGallery() {
+            // First time load: show main spinner
+            spinner.classList.remove('hidden');
+
+            const fetchPromise = fetchWithRetry(API_URL, {});
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("GitHub API Timeout (Rate Limit Hit)")), 10000)
+            );
+
+            try {
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+                if (!response.ok) {
+                    const errorDetails = await response.json().catch(() => ({ message: 'Could not parse error response.' }));
+                    if (response.status === 404) {
+                        throw new Error(`Folder Not Found: Verify "art" folder and repository names are correct: ${username}/${repoName}`);
+                    } else {
+                        throw new Error(`GitHub API Error ${response.status}: ${errorDetails.message || 'Unknown Error'}. Likely a rate limit issue.`);
+                    }
+                }
+
+                const files = await response.json();
+                
+                // 1. Filter and sort all files globally
+                allImageFiles = files
+                    .filter(file => IMAGE_EXTENSIONS.includes(`.${getExtension(file.name)}`))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                
+                if (allImageFiles.length === 0) {
+                     gallery.innerHTML = `<p class="col-span-full text-center text-gray-500 text-opacity-70 p-8 text-xl border-t border-gray-700 mt-6">No supported artwork found in the **art** folder yet.</p>`;
+                     return;
+                }
+
+                // 2. Load the first batch
+                const firstBatch = allImageFiles.slice(0, BATCH_SIZE);
+                await renderJustifiedBatch(firstBatch, 0);
+                
+                // 3. Start observing for more content
+                if (currentRenderedIndex < allImageFiles.length) {
+                    observer.observe(sentinel);
+                }
+
+
+            } catch (error) {
+                console.error("Failed to fetch or render GitHub files:", error);
+                errorMessage.classList.remove('hidden');
+                errorText.textContent = error.message;
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+        
+        // --- Intersection Observer Setup ---
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // When the sentinel comes into view, load the next batch
+                    loadNextBatch();
+                }
+            });
+        }, {
+            rootMargin: '200px', // Start loading when 200px away from the bottom
+            threshold: 0
+        });
+
+
+        // --- Initialization ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndInitializeGallery();
+            
+            // Set initial parallax position
+            applyParallax();
+
+            let lastWidth = window.innerWidth;
+
+            window.addEventListener('resize', () => {
+                // Re-render logic: clear and restart if width changes to recalculate the justified layout
+                // Also trigger a refresh if the orientation changes (e.g., from mobile portrait to landscape)
+                const currentRatio = window.innerWidth / window.innerHeight;
+                const lastRatio = lastWidth / window.innerHeight; // Approximate old ratio based on old width
+
+                const isOrientationChange = (currentRatio > 1.0 && lastRatio <= 1.0) || (currentRatio <= 1.0 && lastRatio > 1.0);
+                
+                if (Math.abs(window.innerWidth - lastWidth) > 50 || isOrientationChange) {
+                    clearTimeout(window.resizeTimer);
+                    window.resizeTimer = setTimeout(() => {
+                        gallery.innerHTML = '';
+                        currentRenderedIndex = 0;
+                        // Important: Need to clear the observer when restarting the gallery
+                        observer.unobserve(sentinel); 
+                        lastWidth = window.innerWidth;
+                        fetchAndInitializeGallery(); 
+                    }, 500);
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
+
+
