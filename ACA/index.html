@@ -19,7 +19,7 @@
             width: 100%;
             height: 40px;
             border-radius: 0.25rem;
-            filter: invert(90%) hue-rotate(180deg); /* Adjusts player colors for dark themes */
+            filter: invert(90%) hue-rotate(180deg);
         }
     </style>
 </head>
@@ -40,7 +40,7 @@
             <p class="mt-3 text-sm text-gray-400">Fetching latest audio tracks...</p>
         </div>
         
-        <div id="audio-playlist" class="space-y-6">
+        <div id="audio-playlist" class="space-y-4">
             </div>
 
         <div id="error-message" class="hidden bg-red-900/50 border border-red-700 p-4 rounded-lg mt-12 text-white">
@@ -55,10 +55,10 @@
     </footer>
 
     <script>
-        // === Configuration Details matching your repo setup ===
+        // === Configuration Details ===
         const username = 'Tombs-Tones'; 
         const repoName = 'Portfolio-Personal-Art-TomB';
-        const folderPath = 'ACA'; // Name of the folder where your MP3 files live
+        const folderPath = 'ACA'; // Points directly to your ACA folder now
         const branch = 'main'; 
         
         const API_URL = `https://api.github.com/repos/${username}/${repoName}/contents/${folderPath}?ref=${branch}`;
@@ -72,9 +72,7 @@
 
         // Helper to format clean titles from filenames
         function cleanTrackTitle(filename) {
-            // Remove extension (.mp3)
             let nameWithoutExtension = filename.replace(/\.[^/.]+$/, "");
-            // Replace underscores or hyphens with spaces for cleaner layout
             return nameWithoutExtension.replace(/[_-]/g, ' ');
         }
 
@@ -84,9 +82,9 @@
 
                 if (!response.ok) {
                     if (response.status === 404) {
-                        throw new Error(`The folder "${folderPath}" was not found in your repository. Please make sure it is uploaded exactly as spelled.`);
+                        throw new Error(`The folder "${folderPath}" was not found.`);
                     } else {
-                        throw new Error(`GitHub API Error (${response.status}). You might have refreshed too fast; try again shortly.`);
+                        throw new Error(`GitHub API Error (${response.status}).`);
                     }
                 }
 
@@ -110,15 +108,23 @@
                     const trackTitle = cleanTrackTitle(file.name);
                     
                     const trackCard = document.createElement('div');
-                    trackCard.className = 'bg-zinc-900/40 border border-zinc-800 p-5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-zinc-700';
+                    trackCard.className = 'bg-zinc-900/40 border border-zinc-800 p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-zinc-700';
                     
                     trackCard.innerHTML = `
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-lg font-normal text-zinc-100 truncate tracking-wide">${trackTitle}</h3>
-                            <p class="text-xs text-zinc-500 font-mono truncate mt-1">${file.name}</p>
+                            <h3 class="text-base font-normal text-zinc-100 truncate tracking-wide">${trackTitle}</h3>
+                            <p class="text-xs text-zinc-500 font-mono truncate mt-0.5">${file.name}</p>
                         </div>
-                        <div class="w-full sm:w-72 flex items-center">
-                            <audio controls src="${file.download_url}" preload="none"></audio>
+                        <div class="w-full md:w-auto flex items-center gap-3">
+                            <div class="flex-1 md:w-64">
+                                <audio controls src="${file.download_url}" preload="none"></audio>
+                            </div>
+                            <a href="${file.download_url}" download="${file.name}" target="_blank" class="bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-zinc-200 text-xs px-4 h-10 rounded flex items-center justify-center font-medium transition-colors tracking-wide border border-zinc-700">
+                                <svg class="w-4 h-4 mr-1.5 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Download
+                            </a>
                         </div>
                     `;
                     
